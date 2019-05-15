@@ -48,7 +48,10 @@ if [[ ${MODE} == "build" ]]; then
     newChannel
 elif [[ ${MODE} == "run" ]]; then
     sudo docker-compose -f docker-compose.yml up -d && \
-    sudo docker exec -it cli bash
+    sudo docker exec \
+    -e ORDERER_CA=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem \
+    -it \
+    cli bash
 elif [[ ${MODE} == "rm" ]]; then
     sudo docker-compose -f docker-compose.yml down && \
     sudo docker rm $(docker ps -aq)
