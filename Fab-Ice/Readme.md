@@ -10,8 +10,8 @@
 3. sudo ./setup rm
 
 # WARN!!
-- sudo ./setup rm에서 docker container을 모두 삭제하며, 미연동중인 volume도 다 삭제합니다.
-- sudo ./setup rmではDocker Containerをすべて削除します。尚、未連動のVolumeもすべて削除します。
+- sudo ./setup rm에서, 미연동중인 volume을 다 삭제합니다.
+- sudo ./setup rmでは、未連動のVolumeをすべて削除します。
 
 # img
 ![fabice.png](./img/fabice.png)
