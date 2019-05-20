@@ -4,7 +4,6 @@ function fabDirRemove() {
     logInfo "remove()"
     sudo rm -rf channel-artifacts
     sudo rm -rf crypto-config
-    echo
 }
 
 function generateCerts() {

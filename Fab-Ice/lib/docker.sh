@@ -63,8 +63,46 @@ function instantiateContract() {
     -v 1.0
 }
 
+function imageRm() {
+    v=$1
+    sudo docker image rm ${v}
+}
+
+function containerRm() {
+    v=$1
+    sudo docker container rm ${v}
+}
+
+function dockerRm() {
+    type=$1
+    str=$2
+    values=$(echo ${str} | tr " " "\n")
+
+    for v in ${values}
+    do
+        if [[ "${v}" =~ "fabice"  ]]; then
+            if [[ ${type} == "container" ]]; then
+                containerRm ${v}
+            elif [[ ${type} == "image" ]]; then
+                imageRm ${v}
+            fi
+        fi
+    done
+}
+
+function fabIceRmContainer() {
+    str=$(sudo docker ps -a --format '{{.Names}}')
+    dockerRm "container" ${str}
+}
+
+function fabIceRmImage() {
+    str=$(sudo docker image ls --format '{{.Repository}}')
+    dockerRm "image" ${str}
+}
+
 function dockerFabricRemove() {
-    sudo docker-compose -f docker-compose.yml down && \
-    sudo docker rm $(sudo docker ps -aq)
+     sudo docker-compose -f docker-compose.yml down && \
+    fabIceRmContainer
+    fabIceRmImage
     sudo docker volume rm $(sudo docker volume ls -qf dangling=true)
 }
