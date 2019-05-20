@@ -57,8 +57,8 @@ func (s *SmartContract) Invoke(stub shim.ChaincodeStubInterface) peer.Response {
 	return shim.Error("Invalid Smart Contract function name.")
 }
 
-// peer chaincode invoke -n fabice -c '{"Args":["getIceCream", "a"]}' -C channelall
-// peer chaincode query -C channelall -n fabice -c '{"Args":["getIceCream", "a"]}'
+// peer chaincode invoke -n fabice -c '{"Args":["getIceCream", "ICE0"]}' -C channelall
+// peer chaincode query -C channelall -n fabice -c '{"Args":["getIceCream", "ICE0"]}'
 // '{"Args":["getIceCream",
 // "a" -> key  args[0]
 // ]}'
@@ -70,7 +70,7 @@ func (s *SmartContract) getIceCream(stub shim.ChaincodeStubInterface, args []str
 	return shim.Success(iceCreamBytes)
 }
 
-// peer chaincode invoke -n fabice -c '{"Args":["newIceCream", "a", "1", "!", "3"]}' -C channelall
+// peer chaincode invoke -n fabice -c '{"Args":["newIceCream", "ICE0", "strawberry", "red", "User1"]}' -C channelall
 // '{"Args":["newIceCream",
 // "a",  -> key 	args[0]
 // "1",  -> Flavor	args[1]
