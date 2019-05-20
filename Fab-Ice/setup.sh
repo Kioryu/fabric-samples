@@ -24,6 +24,8 @@ elif [[ ${MODE} == "run" ]]; then
     newChannelAll && \
     joinChannelAll && \
     updateChannelAll && \
+    installContract && \
+    instantiateContract && \
     conCli
 elif [[ ${MODE} == "rm" ]]; then
     dockerFabricRemove

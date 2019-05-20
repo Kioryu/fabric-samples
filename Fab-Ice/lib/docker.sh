@@ -41,6 +41,28 @@ function conCli() {
      cli bash
 }
 
+function installContract() {
+    sudo docker exec \
+    cli \
+    peer chaincode install \
+    -n fabice \
+    -v 1.0 \
+    -p github.com/chaincode/Fab-Ice \
+    -l golang
+}
+
+function instantiateContract() {
+    sudo docker exec \
+    cli \
+    peer chaincode instantiate \
+    -o orderer.example.com:7050 \
+    --cafile ${ORDERER_CA} \
+    -C channelall \
+    -c '{"Args":[]}' \
+    -n fabice \
+    -v 1.0
+}
+
 function dockerFabricRemove() {
     sudo docker-compose -f docker-compose.yml down && \
     sudo docker rm $(sudo docker ps -aq)
