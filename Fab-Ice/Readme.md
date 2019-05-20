@@ -3,6 +3,8 @@
 - アイスクリームの所有権を保存する最もシンプルなFabricネットワークをつくります。
 
 # how
+0. ./bootstrap.sh
+- path: fabric-samples/scripts/bootstrap.sh
 1. sudo ./setup build
 2. sudo ./setup run
 3. sudo ./setup rm
