@@ -18,11 +18,12 @@ function infoLog(){
 function helpOptions(){
     echo "=================="
     echo "1. setup.sh build"
-    echo "2. setup.sh rm"
+    echo "2. setup.sh run"
+    echo "3. setup.sh rm"
     echo "=================="
 }
 
-function main() {
+function build() {
     mkdir channel-artifacts
 
     ../bin/cryptogen generate --config=./crypto-config.yaml
@@ -45,11 +46,22 @@ function main() {
     ../bin/configtxgen -profile ${CHANNEL_SECRET_PROFILE} -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors_${CHANNEL_SECRET_NAME}.tx -channelID ${CHANNEL_SECRET_NAME} -asOrg Org1MSP
 }
 
+function run() {
+    docker-compose -f docker-compose.yml up -d
+
+    sudo docker exec \
+     -e ORDERER_CA=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem \
+     -it \
+     cli bash
+}
+
 if [[ ${MODE} == "rm" ]]; then
     rm -rf crypto-config
     rm -rf channel-artifacts
 elif [[ ${MODE} == "build" ]]; then
-    main
+    build
+elif [[ ${MODE} == "run" ]]; then
+    run
 else
     helpOptions
 fi
