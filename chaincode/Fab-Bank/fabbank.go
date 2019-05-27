@@ -19,6 +19,17 @@ func generatePWD(pwd string) (string) {
 	return fmt.Sprintf("%x", bs)
 }
 
+func checkPWD(bookByte []byte, pwd string) error {
+	bk := bankbook{}
+	json.Unmarshal(bookByte, &bk)
+
+	if bk.Pwd != generatePWD(pwd) {
+		return fmt.Errorf("The password is incorrect.")
+	}
+
+	return nil
+}
+
 type bankbook struct {
 	Owner      string `json:"owner"`
 	Pwd        string `json:"pwd"`
@@ -74,8 +85,8 @@ func (s *SmartContract) open(stub shim.ChaincodeStubInterface, args []string) pe
 }
 
 func (s *SmartContract) getBankBook(stub shim.ChaincodeStubInterface, args []string) peer.Response {
-	if len(args) != 1 {
-		return shim.Error("Incorrect number of arguments. Expecting 1")
+	if len(args) != 2 {
+		return shim.Error("Incorrect number of arguments. Expecting 2")
 	}
 
 	result, err := stub.GetState(args[0])
@@ -85,6 +96,11 @@ func (s *SmartContract) getBankBook(stub shim.ChaincodeStubInterface, args []str
 
 	if result == nil {
 		return shim.Error(fmt.Sprintf("Empty Key %s", args[0]))
+	}
+
+	err = checkPWD(result, args[1])
+	if err != nil {
+		return shim.Error(err.Error())
 	}
 
 	return shim.Success(result)
