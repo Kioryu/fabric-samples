@@ -163,9 +163,9 @@ function peerDockerExec(){
             -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
             cli \
             peer chaincode install \
-            -n fabice \
+            -n fabbank \
             -v 1.0 \
-            -p github.com/chaincode/Fab-Ice \
+            -p github.com/chaincode/Fab-Bank \
             -l golang
 
         sudo docker exec \
@@ -178,7 +178,7 @@ function peerDockerExec(){
             --cafile ${ORDERER_CA} \
             -C ${CHANNEL_ALL_NAME} \
             -c '{"Args":[]}' \
-            -n fabice \
+            -n fabbank \
             -v 1.0
 
         sudo docker exec \
@@ -191,7 +191,7 @@ function peerDockerExec(){
             --cafile ${ORDERER_CA} \
             -C ${CHANNEL_VIP_NAME} \
             -c '{"Args":[]}' \
-            -n fabice \
+            -n fabbank \
             -v 1.0
 
         sudo docker exec \
@@ -204,7 +204,7 @@ function peerDockerExec(){
             --cafile ${ORDERER_CA} \
             -C ${CHANNEL_SECRET_NAME} \
             -c '{"Args":[]}' \
-            -n fabice \
+            -n fabbank \
             -v 1.0
 
     elif [[ ${PEER} == "2" ]]; then
@@ -285,9 +285,9 @@ function peerDockerExec(){
             -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
             cli \
             peer chaincode install \
-            -n fabice \
+            -n fabbank \
             -v 1.0 \
-            -p github.com/chaincode/Fab-Ice \
+            -p github.com/chaincode/Fab-Bank \
             -l golang
 
     elif [[ ${PEER} == "3" ]]; then
@@ -336,9 +336,9 @@ function peerDockerExec(){
             -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
             cli \
             peer chaincode install \
-            -n fabice \
+            -n fabbank \
             -v 1.0 \
-            -p github.com/chaincode/Fab-Ice \
+            -p github.com/chaincode/Fab-Bank \
             -l golang
 
     fi
