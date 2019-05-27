@@ -156,6 +156,57 @@ function peerDockerExec(){
         -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${ORGMSPANCHORS}_${CHANNEL_SECRET_NAME}.tx \
         --cafile ${ORDERER_CA}
 
+        # deploy ChainCode
+        sudo docker exec \
+            -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
+            -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
+            -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
+            cli \
+            peer chaincode install \
+            -n fabice \
+            -v 1.0 \
+            -p github.com/chaincode/Fab-Ice \
+            -l golang
+
+        sudo docker exec \
+            -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
+            -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
+            -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
+            cli \
+            peer chaincode instantiate \
+            -o orderer.example.com:7050 \
+            --cafile ${ORDERER_CA} \
+            -C ${CHANNEL_ALL_NAME} \
+            -c '{"Args":[]}' \
+            -n fabice \
+            -v 1.0
+
+        sudo docker exec \
+            -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
+            -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
+            -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
+            cli \
+            peer chaincode instantiate \
+            -o orderer.example.com:7050 \
+            --cafile ${ORDERER_CA} \
+            -C ${CHANNEL_VIP_NAME} \
+            -c '{"Args":[]}' \
+            -n fabice \
+            -v 1.0
+
+        sudo docker exec \
+            -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
+            -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
+            -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
+            cli \
+            peer chaincode instantiate \
+            -o orderer.example.com:7050 \
+            --cafile ${ORDERER_CA} \
+            -C ${CHANNEL_SECRET_NAME} \
+            -c '{"Args":[]}' \
+            -n fabice \
+            -v 1.0
+
     elif [[ ${PEER} == "2" ]]; then
         ORG2_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp
         CORE_PEER_LOCALMSPID=Org2MSP
@@ -227,6 +278,18 @@ function peerDockerExec(){
         -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${ORGMSPANCHORS}_${CHANNEL_VIP_NAME}.tx \
         --cafile ${ORDERER_CA}
 
+        # deploy ChainCode
+        sudo docker exec \
+            -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
+            -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
+            -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
+            cli \
+            peer chaincode install \
+            -n fabice \
+            -v 1.0 \
+            -p github.com/chaincode/Fab-Ice \
+            -l golang
+
     elif [[ ${PEER} == "3" ]]; then
         ORG3_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org3.example.com/users/Admin@org3.example.com/msp
         CORE_PEER_LOCALMSPID=Org3MSP
@@ -265,6 +328,19 @@ function peerDockerExec(){
         -c ${CHANNEL_ALL_NAME} \
         -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${ORGMSPANCHORS}_${CHANNEL_ALL_NAME}.tx \
         --cafile ${ORDERER_CA}
+
+        # deploy ChainCode
+        sudo docker exec \
+            -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
+            -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
+            -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
+            cli \
+            peer chaincode install \
+            -n fabice \
+            -v 1.0 \
+            -p github.com/chaincode/Fab-Ice \
+            -l golang
+
     fi
 }
 
