@@ -3,12 +3,20 @@ package main
 import (
 	"fmt"
 
+	"crypto/sha512"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"github.com/hyperledger/fabric/protos/peer"
 	"encoding/json"
 )
 
 type SmartContract struct {
+}
+
+func generatePWD(pwd string) (string) {
+	s512 := sha512.New()
+	s512.Write([]byte(pwd))
+	bs := s512.Sum(nil)
+	return fmt.Sprintf("%x", bs)
 }
 
 type bankbook struct {
@@ -48,7 +56,9 @@ func (s *SmartContract) open(stub shim.ChaincodeStubInterface, args []string) pe
 		return shim.Error(fmt.Sprintf("%s - %s : %s", "It already exists.", "key", args[0]))
 	}
 
-	var book = bankbook{Owner: args[0], Pwd: args[1], Identifier: args[2], Balance: args[3]}
+	hashedPWD := generatePWD(args[1])
+
+	var book = bankbook{Owner: args[0], Pwd: hashedPWD, Identifier: args[2], Balance: args[3]}
 
 	bookBytes, err := json.Marshal(book)
 	if err != nil {
