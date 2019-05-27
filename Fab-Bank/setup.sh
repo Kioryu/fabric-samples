@@ -22,7 +22,8 @@ function helpOptions(){
     echo "=================="
     echo "1. setup.sh build"
     echo "2. setup.sh run"
-    echo "3. setup.sh rm"
+    echo "3. setup.sh attach <peerNumber>"
+    echo "4. setup.sh rm"
     echo "=================="
 }
 
@@ -163,16 +164,16 @@ function peerDockerExec(){
         ORGMSPANCHORS=Org2MSPanchors
 
         # channel all
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel create \
-        -o orderer.example.com:7050 \
-        -c ${CHANNEL_ALL_NAME} \
-        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${CHANNEL_ALL_NAME}.tx \
-        --cafile ${ORDERER_CA}
+#        sudo docker exec \
+#        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
+#        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
+#        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
+#        cli \
+#        peer channel create \
+#        -o orderer.example.com:7050 \
+#        -c ${CHANNEL_ALL_NAME} \
+#        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${CHANNEL_ALL_NAME}.tx \
+#        --cafile ${ORDERER_CA}
 
         sudo docker exec \
         -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
@@ -195,16 +196,16 @@ function peerDockerExec(){
         --cafile ${ORDERER_CA}
 
         # channel vip
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel create \
-        -o orderer.example.com:7050 \
-        -c ${CHANNEL_VIP_NAME} \
-        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${CHANNEL_VIP_NAME}.tx \
-        --cafile ${ORDERER_CA}
+#        sudo docker exec \
+#        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
+#        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
+#        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
+#        cli \
+#        peer channel create \
+#        -o orderer.example.com:7050 \
+#        -c ${CHANNEL_VIP_NAME} \
+#        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${CHANNEL_VIP_NAME}.tx \
+#        --cafile ${ORDERER_CA}
 
         sudo docker exec \
         -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
@@ -225,6 +226,7 @@ function peerDockerExec(){
         -c ${CHANNEL_VIP_NAME} \
         -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${ORGMSPANCHORS}_${CHANNEL_VIP_NAME}.tx \
         --cafile ${ORDERER_CA}
+
     elif [[ ${PEER} == "3" ]]; then
         ORG3_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org3.example.com/users/Admin@org3.example.com/msp
         CORE_PEER_LOCALMSPID=Org3MSP
@@ -233,16 +235,16 @@ function peerDockerExec(){
         ORGMSPANCHORS=Org3MSPanchors
 
         # channel all
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel create \
-        -o orderer.example.com:7050 \
-        -c ${CHANNEL_ALL_NAME} \
-        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${CHANNEL_ALL_NAME}.tx \
-        --cafile ${ORDERER_CA}
+#        sudo docker exec \
+#        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
+#        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
+#        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
+#        cli \
+#        peer channel create \
+#        -o orderer.example.com:7050 \
+#        -c ${CHANNEL_ALL_NAME} \
+#        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${CHANNEL_ALL_NAME}.tx \
+#        --cafile ${ORDERER_CA}
 
         sudo docker exec \
         -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
@@ -264,6 +266,31 @@ function peerDockerExec(){
         -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${ORGMSPANCHORS}_${CHANNEL_ALL_NAME}.tx \
         --cafile ${ORDERER_CA}
     fi
+}
+
+function attachDocker() {
+    PEER=$1
+    if [[ ${PEER} == "1" ]]; then
+        ORG1_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
+        CORE_PEER_LOCALMSPID=Org1MSP
+        CORE_PEER_ADDRESS=peer0.org1.example.com:7051
+        CORE_PEER_MSPCONFIGPATH=${ORG1_MSPCONFIGPATH}
+
+    elif [[ ${PEER} == "2" ]]; then
+        ORG2_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp
+        CORE_PEER_LOCALMSPID=Org2MSP
+        CORE_PEER_ADDRESS=peer0.org2.example.com:8051
+        CORE_PEER_MSPCONFIGPATH=${ORG2_MSPCONFIGPATH}
+
+    elif [[ ${PEER} == "3" ]]; then
+        ORG3_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org3.example.com/users/Admin@org3.example.com/msp
+        CORE_PEER_LOCALMSPID=Org3MSP
+        CORE_PEER_ADDRESS=peer0.org3.example.com:9051
+        CORE_PEER_MSPCONFIGPATH=${ORG3_MSPCONFIGPATH}
+    else
+        return
+    fi
+
 
     sudo docker exec \
      -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
@@ -277,6 +304,8 @@ function peerDockerExec(){
 function run() {
     docker-compose -f docker-compose.yml up -d
 
+    peerDockerExec 1 && \
+    peerDockerExec 2 && \
     peerDockerExec 3
 }
 
@@ -289,6 +318,8 @@ elif [[ ${MODE} == "build" ]]; then
     build
 elif [[ ${MODE} == "run" ]]; then
     run
+elif [[ ${MODE} == "attach" ]]; then
+    attachDocker $2
 else
     helpOptions
 fi
