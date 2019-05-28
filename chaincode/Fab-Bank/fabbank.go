@@ -35,12 +35,14 @@ func (s *SmartContract) Invoke(stub shim.ChaincodeStubInterface) peer.Response {
 		return s.sendMoney(stub, args)
 	} else if function == "deposit" {
 		return s.deposit(stub, args)
+	} else if function == "withdraw" {
+		return s.withdraw(stub, args)
 	}
 
 	return shim.Error("Invalid Smart Contract function name.")
 }
 
-// from(key), pwd, identifier, balance
+// from(key), pwd, identifier, value
 func (s *SmartContract) open(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	if len(args) != 4 {
 		return shim.Error("Incorrect number of arguments. Expecting 4")
@@ -49,7 +51,7 @@ func (s *SmartContract) open(stub shim.ChaincodeStubInterface, args []string) pe
 	from := args[0]
 	pwd := args[1]
 	identifier := args[2]
-	balance := args[3]
+	value := args[3]
 
 	result, err := stub.GetState(from)
 	if err != nil {
@@ -62,7 +64,7 @@ func (s *SmartContract) open(stub shim.ChaincodeStubInterface, args []string) pe
 
 	hashedPWD := generatePWD(pwd)
 
-	var book = bankbook{Owner: from, Pwd: hashedPWD, Identifier: identifier, Balance: balance}
+	var book = bankbook{Owner: from, Pwd: hashedPWD, Identifier: identifier, Balance: value}
 
 	bookBytes, err := json.Marshal(book)
 	if err != nil {
@@ -138,43 +140,9 @@ func (s *SmartContract) sendMoney(stub shim.ChaincodeStubInterface, args []strin
 		return shim.Error(fmt.Sprintf("Empty To %s", to))
 	}
 
-	fromBook := bankbook{}
-	toBook := bankbook{}
-
-	json.Unmarshal(fromResult, &fromBook)
-	json.Unmarshal(toResult, &toBook)
-
-	fromBalance, err := strconv.ParseInt(fromBook.Balance, 10, 64)
+	fromBookByte, toBookByte, err := modifyBooksSendValue(fromResult, toResult, value)
 	if err != nil {
 		return shim.Error(err.Error())
-	}
-
-	toBalance, err := strconv.ParseInt(toBook.Balance, 10, 64)
-	if err != nil {
-		return shim.Error(err.Error())
-	}
-
-	sendValue, err := strconv.ParseInt(value, 10, 64)
-	if err != nil {
-		return shim.Error(err.Error())
-	}
-
-	resultBalance := fromBalance - sendValue
-	if resultBalance < 0 {
-		return shim.Error(fmt.Sprintf("%s", "no money."))
-	}
-
-	fromBook.Balance = fmt.Sprintf("%d", resultBalance)
-	toBook.Balance = fmt.Sprintf("%d", toBalance+sendValue)
-
-	fromBookByte, err := json.Marshal(fromBook)
-	if err != nil {
-		shim.Error(err.Error())
-	}
-
-	toBookByte, err := json.Marshal(toBook)
-	if err != nil {
-		shim.Error(err.Error())
 	}
 
 	err = stub.PutState(from, fromBookByte)
@@ -190,7 +158,7 @@ func (s *SmartContract) sendMoney(stub shim.ChaincodeStubInterface, args []strin
 	return shim.Success([]byte("Money has been transferred."))
 }
 
-// owner(key), pwd, balance
+// owner(key), pwd, value
 func (s *SmartContract) deposit(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	if len(args) != 3 {
 		return shim.Error("Incorrect number of arguments. Expecting 3")
@@ -198,7 +166,7 @@ func (s *SmartContract) deposit(stub shim.ChaincodeStubInterface, args []string)
 
 	owner := args[0]
 	pwd := args[1]
-	balance := args[2]
+	value := args[2]
 
 	ownerResult, err := stub.GetState(owner)
 	if err != nil {
@@ -214,7 +182,7 @@ func (s *SmartContract) deposit(stub shim.ChaincodeStubInterface, args []string)
 		return shim.Error(err.Error())
 	}
 
-	modifiedBook, err := modifyBookBalance(ownerResult, balance)
+	modifiedBook, err := modifyBookBalance(0, ownerResult, value)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
@@ -225,6 +193,43 @@ func (s *SmartContract) deposit(stub shim.ChaincodeStubInterface, args []string)
 	}
 
 	return shim.Success([]byte("Deposit completed."))
+}
+
+// owner, pwd, value
+func (s *SmartContract) withdraw(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+	if len(args) != 3 {
+		return shim.Error("Incorrect number of arguments. Expecting 3")
+	}
+
+	owner := args[0]
+	pwd := args[1]
+	value := args[2]
+
+	ownerResult, err := stub.GetState(owner)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	if ownerResult == nil {
+		return shim.Error(fmt.Sprintf("Empty Key %s", ownerResult))
+	}
+
+	err = checkPWD(ownerResult, pwd)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	result, err := modifyBookBalance(1, ownerResult, value)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	err = stub.PutState(owner, result)
+	if err != nil {
+		shim.Error(err.Error())
+	}
+
+	return shim.Success([]byte("complete withdrawal"))
 }
 
 func generatePWD(pwd string) (string) {
@@ -245,7 +250,9 @@ func checkPWD(bookByte []byte, pwd string) error {
 	return nil
 }
 
-func modifyBookBalance(result []byte, balance string) ([]byte, error) {
+// operatorType 0 == +
+// operatorType 1 == -
+func modifyBookBalance(operatorType int, result []byte, value string) ([]byte, error) {
 	book := bankbook{}
 
 	json.Unmarshal(result, &book)
@@ -255,12 +262,21 @@ func modifyBookBalance(result []byte, balance string) ([]byte, error) {
 		return nil, err
 	}
 
-	depositBalance, err := strconv.ParseInt(balance, 10, 64)
+	depositBalance, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		return nil, err
 	}
 
-	resultBalance := ownerBalance + depositBalance
+	var resultBalance int64
+	if operatorType == 0 {
+		resultBalance = ownerBalance + depositBalance
+	} else if operatorType == 1 {
+		resultBalance = ownerBalance - depositBalance
+		if resultBalance < 0 {
+			return nil, fmt.Errorf("%s", "no money.")
+		}
+	}
+
 	book.Balance = fmt.Sprintf("%d", resultBalance)
 
 	ownerBookByte, err := json.Marshal(book)
@@ -269,6 +285,49 @@ func modifyBookBalance(result []byte, balance string) ([]byte, error) {
 	}
 
 	return ownerBookByte, nil
+}
+
+func modifyBooksSendValue(fromResult, toResult []byte, sendValue string) ([]byte, []byte, error) {
+	fromBook := bankbook{}
+	toBook := bankbook{}
+
+	json.Unmarshal(fromResult, &fromBook)
+	json.Unmarshal(toResult, &toBook)
+
+	fromBalance, err := strconv.ParseInt(fromBook.Balance, 10, 64)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	toBalance, err := strconv.ParseInt(toBook.Balance, 10, 64)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sendBalance, err := strconv.ParseInt(sendValue, 10, 64)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resultBalance := fromBalance - sendBalance
+	if resultBalance < 0 {
+		return nil, nil, fmt.Errorf("%s", "no money.")
+	}
+
+	fromBook.Balance = fmt.Sprintf("%d", resultBalance)
+	toBook.Balance = fmt.Sprintf("%d", toBalance+sendBalance)
+
+	fromBookByte, err := json.Marshal(fromBook)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	toBookByte, err := json.Marshal(toBook)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return fromBookByte, toBookByte, nil
 }
 
 func main() {
