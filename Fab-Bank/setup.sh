@@ -377,6 +377,43 @@ function attachDocker() {
      cli bash
 }
 
+function imageRm() {
+    v=$1
+    sudo docker image rm ${v}
+}
+
+function containerRm() {
+    v=$1
+    sudo docker container rm ${v}
+}
+
+function dockerRm() {
+    type=$1
+    str=$2
+    values=$(echo ${str} | tr " " "\n")
+
+    for v in ${values}
+    do
+        if [[ "${v}" =~ "fabbank"  ]]; then
+            if [[ ${type} == "container" ]]; then
+                containerRm ${v}
+            elif [[ ${type} == "image" ]]; then
+                imageRm ${v}
+            fi
+        fi
+    done
+}
+
+function fabIceRmContainer() {
+    str=$(sudo docker ps -a --format '{{.Names}}')
+    dockerRm "container" ${str}
+}
+
+function fabIceRmImage() {
+    str=$(sudo docker image ls --format '{{.Repository}}')
+    dockerRm "image" ${str}
+}
+
 function run() {
     docker-compose -f docker-compose.yml up -d
 
@@ -390,6 +427,8 @@ if [[ ${MODE} == "rm" ]]; then
     docker volume rm $(docker volume ls -qf dangling=true)
     rm -rf crypto-config
     rm -rf channel-artifacts
+    fabIceRmContainer
+    fabIceRmImage
 elif [[ ${MODE} == "build" ]]; then
     build
 elif [[ ${MODE} == "run" ]]; then
