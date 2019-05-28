@@ -13,24 +13,6 @@ import (
 type SmartContract struct {
 }
 
-func generatePWD(pwd string) (string) {
-	s512 := sha512.New()
-	s512.Write([]byte(pwd))
-	bs := s512.Sum(nil)
-	return fmt.Sprintf("%x", bs)
-}
-
-func checkPWD(bookByte []byte, pwd string) error {
-	bk := bankbook{}
-	json.Unmarshal(bookByte, &bk)
-
-	if bk.Pwd != generatePWD(pwd) {
-		return fmt.Errorf("The password is incorrect.")
-	}
-
-	return nil
-}
-
 type bankbook struct {
 	Owner      string `json:"owner"`
 	Pwd        string `json:"pwd"`
@@ -51,6 +33,8 @@ func (s *SmartContract) Invoke(stub shim.ChaincodeStubInterface) peer.Response {
 		return s.getBankBook(stub, args)
 	} else if function == "sendMoney" {
 		return s.sendMoney(stub, args)
+	} else if function == "deposit" {
+		return s.deposit(stub, args)
 	}
 
 	return shim.Error("Invalid Smart Contract function name.")
@@ -62,25 +46,30 @@ func (s *SmartContract) open(stub shim.ChaincodeStubInterface, args []string) pe
 		return shim.Error("Incorrect number of arguments. Expecting 4")
 	}
 
-	result, err := stub.GetState(args[0])
+	from := args[0]
+	pwd := args[1]
+	identifier := args[2]
+	balance := args[3]
+
+	result, err := stub.GetState(from)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
 
 	if result != nil {
-		return shim.Error(fmt.Sprintf("%s - %s : %s", "It already exists.", "key", args[0]))
+		return shim.Error(fmt.Sprintf("%s - %s : %s", "It already exists.", "key", from))
 	}
 
-	hashedPWD := generatePWD(args[1])
+	hashedPWD := generatePWD(pwd)
 
-	var book = bankbook{Owner: args[0], Pwd: hashedPWD, Identifier: args[2], Balance: args[3]}
+	var book = bankbook{Owner: from, Pwd: hashedPWD, Identifier: identifier, Balance: balance}
 
 	bookBytes, err := json.Marshal(book)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
 
-	err = stub.PutState(args[0], bookBytes)
+	err = stub.PutState(from, bookBytes)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
@@ -94,16 +83,19 @@ func (s *SmartContract) getBankBook(stub shim.ChaincodeStubInterface, args []str
 		return shim.Error("Incorrect number of arguments. Expecting 2")
 	}
 
-	result, err := stub.GetState(args[0])
+	from := args[0]
+	pwd := args[1]
+
+	result, err := stub.GetState(from)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
 
 	if result == nil {
-		return shim.Error(fmt.Sprintf("Empty Key %s", args[0]))
+		return shim.Error(fmt.Sprintf("Empty Key %s", from))
 	}
 
-	err = checkPWD(result, args[1])
+	err = checkPWD(result, pwd)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
@@ -117,6 +109,7 @@ func (s *SmartContract) sendMoney(stub shim.ChaincodeStubInterface, args []strin
 	if len(args) != 4 {
 		return shim.Error("Incorrect number of arguments. Expecting 4")
 	}
+
 	from := args[0]
 	pwd := args[1]
 	to := args[2]
@@ -195,6 +188,87 @@ func (s *SmartContract) sendMoney(stub shim.ChaincodeStubInterface, args []strin
 	}
 
 	return shim.Success([]byte("Money has been transferred."))
+}
+
+// owner(key), pwd, balance
+func (s *SmartContract) deposit(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+	if len(args) != 3 {
+		return shim.Error("Incorrect number of arguments. Expecting 3")
+	}
+
+	owner := args[0]
+	pwd := args[1]
+	balance := args[2]
+
+	ownerResult, err := stub.GetState(owner)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	if ownerResult == nil {
+		return shim.Error(fmt.Sprintf("Empty Key %s", ownerResult))
+	}
+
+	err = checkPWD(ownerResult, pwd)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	modifiedBook, err := modifyBookBalance(ownerResult, balance)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	err = stub.PutState(owner, modifiedBook)
+	if err != nil {
+		shim.Error(err.Error())
+	}
+
+	return shim.Success([]byte("Deposit completed."))
+}
+
+func generatePWD(pwd string) (string) {
+	s512 := sha512.New()
+	s512.Write([]byte(pwd))
+	bs := s512.Sum(nil)
+	return fmt.Sprintf("%x", bs)
+}
+
+func checkPWD(bookByte []byte, pwd string) error {
+	bk := bankbook{}
+	json.Unmarshal(bookByte, &bk)
+
+	if bk.Pwd != generatePWD(pwd) {
+		return fmt.Errorf("The password is incorrect.")
+	}
+
+	return nil
+}
+
+func modifyBookBalance(result []byte, balance string) ([]byte, error) {
+	book := bankbook{}
+
+	json.Unmarshal(result, &book)
+
+	ownerBalance, err := strconv.ParseInt(book.Balance, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	depositBalance, err := strconv.ParseInt(balance, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	resultBalance := ownerBalance + depositBalance
+	book.Balance = fmt.Sprintf("%d", resultBalance)
+
+	ownerBookByte, err := json.Marshal(book)
+	if err != nil {
+		return nil, err
+	}
+
+	return ownerBookByte, nil
 }
 
 func main() {
