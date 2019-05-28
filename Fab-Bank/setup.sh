@@ -156,7 +156,7 @@ function peerDockerExec(){
         -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${ORGMSPANCHORS}_${CHANNEL_SECRET_NAME}.tx \
         --cafile ${ORDERER_CA}
 
-        # deploy ChainCode !!TODO: NEW CC(FAB-BANK)
+        # deploy ChainCode !!
         sudo docker exec \
             -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
             -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
