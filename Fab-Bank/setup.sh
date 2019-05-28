@@ -417,9 +417,12 @@ function fabIceRmImage() {
 function run() {
     docker-compose -f docker-compose.yml up -d
 
-    peerDockerExec 1 && \
-    peerDockerExec 2 && \
-    peerDockerExec 3
+    # TODO: shell script(*TLS)
+#    peerDockerExec 1 && \
+#    peerDockerExec 2 && \
+#    peerDockerExec 3
+
+    docker exec -it cli bash
 }
 
 if [[ ${MODE} == "rm" ]]; then
