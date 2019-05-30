@@ -1,443 +1,89 @@
 #!/usr/bin/env bash
 
+# cli options [ ex> ./setup.sh [option] ]
 MODE=$1
 
-CHANNEL_ALL_NAME=channelall
-CHANNEL_ALL_PROFILE=ChannelAll
-
-CHANNEL_VIP_NAME=channelvip
-CHANNEL_VIP_PROFILE=ChannelVIP
-
-CHANNEL_SECRET_NAME=channelsecret
-CHANNEL_SECRET_PROFILE=ChannelSecret
-
-ORDERER_CA="/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem"
-CONFIG_ROOT=/opt/gopath/src/github.com/hyperledger/fabric/peer
-
-function infoLog(){
-    echo "[INFO] : $1"
-}
-
-function helpOptions(){
-    echo "=================="
-    echo "1. setup.sh build"
-    echo "2. setup.sh run"
-    echo "3. setup.sh attach <peerNumber>"
-    echo "4. setup.sh rm"
-    echo "=================="
-}
-
-function build() {
-    mkdir channel-artifacts
-
-    ../bin/cryptogen generate --config=./crypto-config.yaml
-
-    ../bin/configtxgen -profile OrdererGenesis -outputBlock ./channel-artifacts/genesis.block
-
-    ../bin/configtxgen -profile ${CHANNEL_ALL_PROFILE} -outputCreateChannelTx ./channel-artifacts/${CHANNEL_ALL_NAME}.tx -channelID ${CHANNEL_ALL_NAME}
-
-    ../bin/configtxgen -profile ${CHANNEL_ALL_PROFILE} -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors_${CHANNEL_ALL_NAME}.tx -channelID ${CHANNEL_ALL_NAME} -asOrg Org1MSP
-    ../bin/configtxgen -profile ${CHANNEL_ALL_PROFILE} -outputAnchorPeersUpdate ./channel-artifacts/Org2MSPanchors_${CHANNEL_ALL_NAME}.tx -channelID ${CHANNEL_ALL_NAME} -asOrg Org2MSP
-    ../bin/configtxgen -profile ${CHANNEL_ALL_PROFILE} -outputAnchorPeersUpdate ./channel-artifacts/Org3MSPanchors_${CHANNEL_ALL_NAME}.tx -channelID ${CHANNEL_ALL_NAME} -asOrg Org3MSP
-
-    ../bin/configtxgen -profile ${CHANNEL_VIP_PROFILE} -outputCreateChannelTx ./channel-artifacts/${CHANNEL_VIP_NAME}.tx -channelID ${CHANNEL_VIP_NAME}
-
-    ../bin/configtxgen -profile ${CHANNEL_VIP_PROFILE} -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors_${CHANNEL_VIP_NAME}.tx -channelID ${CHANNEL_VIP_NAME} -asOrg Org1MSP
-    ../bin/configtxgen -profile ${CHANNEL_VIP_PROFILE} -outputAnchorPeersUpdate ./channel-artifacts/Org2MSPanchors_${CHANNEL_VIP_NAME}.tx -channelID ${CHANNEL_VIP_NAME} -asOrg Org2MSP
-
-    ../bin/configtxgen -profile ${CHANNEL_SECRET_PROFILE} -outputCreateChannelTx ./channel-artifacts/${CHANNEL_SECRET_NAME}.tx -channelID ${CHANNEL_SECRET_NAME}
-
-    ../bin/configtxgen -profile ${CHANNEL_SECRET_PROFILE} -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors_${CHANNEL_SECRET_NAME}.tx -channelID ${CHANNEL_SECRET_NAME} -asOrg Org1MSP
-}
-
-function peerDockerExec(){
-    PEER=$1
-
-    if [[ ${PEER} == "1" ]]; then
-        ORG1_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
-        CORE_PEER_LOCALMSPID=Org1MSP
-        CORE_PEER_ADDRESS=peer0.org1.example.com:7051
-        CORE_PEER_MSPCONFIGPATH=${ORG1_MSPCONFIGPATH}
-        ORGMSPANCHORS=Org1MSPanchors
-
-        # channel all
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel create \
-        -o orderer.example.com:7050 \
-        -c ${CHANNEL_ALL_NAME} \
-        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${CHANNEL_ALL_NAME}.tx \
-        --cafile ${ORDERER_CA}
-
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel join \
-        -b ${CHANNEL_ALL_NAME}.block \
-        --cafile ${ORDERER_CA}
-
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel update \
-        -o orderer.example.com:7050 \
-        -c ${CHANNEL_ALL_NAME} \
-        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${ORGMSPANCHORS}_${CHANNEL_ALL_NAME}.tx \
-        --cafile ${ORDERER_CA}
-
-        # channel vip
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel create \
-        -o orderer.example.com:7050 \
-        -c ${CHANNEL_VIP_NAME} \
-        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${CHANNEL_VIP_NAME}.tx \
-        --cafile ${ORDERER_CA}
-
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel join \
-        -b ${CHANNEL_VIP_NAME}.block \
-        --cafile ${ORDERER_CA}
-
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel update \
-        -o orderer.example.com:7050 \
-        -c ${CHANNEL_VIP_NAME} \
-        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${ORGMSPANCHORS}_${CHANNEL_VIP_NAME}.tx \
-        --cafile ${ORDERER_CA}
-
-        # channel secret
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel create \
-        -o orderer.example.com:7050 \
-        -c ${CHANNEL_SECRET_NAME} \
-        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${CHANNEL_SECRET_NAME}.tx \
-        --cafile ${ORDERER_CA}
-
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel join \
-        -b ${CHANNEL_SECRET_NAME}.block \
-        --cafile ${ORDERER_CA}
-
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel update \
-        -o orderer.example.com:7050 \
-        -c ${CHANNEL_SECRET_NAME} \
-        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${ORGMSPANCHORS}_${CHANNEL_SECRET_NAME}.tx \
-        --cafile ${ORDERER_CA}
-
-        # deploy ChainCode !!
-        sudo docker exec \
-            -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-            -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-            -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-            cli \
-            peer chaincode install \
-            -n fabbank \
-            -v 1.0 \
-            -p github.com/chaincode/Fab-Bank \
-            -l golang
-
-        sudo docker exec \
-            -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-            -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-            -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-            cli \
-            peer chaincode instantiate \
-            -o orderer.example.com:7050 \
-            --cafile ${ORDERER_CA} \
-            -C ${CHANNEL_ALL_NAME} \
-            -c '{"Args":[]}' \
-            -n fabbank \
-            -v 1.0
-
-        sudo docker exec \
-            -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-            -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-            -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-            cli \
-            peer chaincode instantiate \
-            -o orderer.example.com:7050 \
-            --cafile ${ORDERER_CA} \
-            -C ${CHANNEL_VIP_NAME} \
-            -c '{"Args":[]}' \
-            -n fabbank \
-            -v 1.0
-
-        sudo docker exec \
-            -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-            -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-            -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-            cli \
-            peer chaincode instantiate \
-            -o orderer.example.com:7050 \
-            --cafile ${ORDERER_CA} \
-            -C ${CHANNEL_SECRET_NAME} \
-            -c '{"Args":[]}' \
-            -n fabbank \
-            -v 1.0
-
-    elif [[ ${PEER} == "2" ]]; then
-        ORG2_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp
-        CORE_PEER_LOCALMSPID=Org2MSP
-        CORE_PEER_ADDRESS=peer0.org2.example.com:8051
-        CORE_PEER_MSPCONFIGPATH=${ORG2_MSPCONFIGPATH}
-        ORGMSPANCHORS=Org2MSPanchors
-
-        # channel all
-#        sudo docker exec \
-#        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-#        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-#        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-#        cli \
-#        peer channel create \
-#        -o orderer.example.com:7050 \
-#        -c ${CHANNEL_ALL_NAME} \
-#        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${CHANNEL_ALL_NAME}.tx \
-#        --cafile ${ORDERER_CA}
-
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel join \
-        -b ${CHANNEL_ALL_NAME}.block \
-        --cafile ${ORDERER_CA}
-
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel update \
-        -o orderer.example.com:7050 \
-        -c ${CHANNEL_ALL_NAME} \
-        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${ORGMSPANCHORS}_${CHANNEL_ALL_NAME}.tx \
-        --cafile ${ORDERER_CA}
-
-        # channel vip
-#        sudo docker exec \
-#        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-#        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-#        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-#        cli \
-#        peer channel create \
-#        -o orderer.example.com:7050 \
-#        -c ${CHANNEL_VIP_NAME} \
-#        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${CHANNEL_VIP_NAME}.tx \
-#        --cafile ${ORDERER_CA}
-
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel join \
-        -b ${CHANNEL_VIP_NAME}.block \
-        --cafile ${ORDERER_CA}
-
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel update \
-        -o orderer.example.com:7050 \
-        -c ${CHANNEL_VIP_NAME} \
-        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${ORGMSPANCHORS}_${CHANNEL_VIP_NAME}.tx \
-        --cafile ${ORDERER_CA}
-
-        # deploy ChainCode
-        sudo docker exec \
-            -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-            -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-            -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-            cli \
-            peer chaincode install \
-            -n fabbank \
-            -v 1.0 \
-            -p github.com/chaincode/Fab-Bank \
-            -l golang
-
-    elif [[ ${PEER} == "3" ]]; then
-        ORG3_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org3.example.com/users/Admin@org3.example.com/msp
-        CORE_PEER_LOCALMSPID=Org3MSP
-        CORE_PEER_ADDRESS=peer0.org3.example.com:9051
-        CORE_PEER_MSPCONFIGPATH=${ORG3_MSPCONFIGPATH}
-        ORGMSPANCHORS=Org3MSPanchors
-
-        # channel all
-#        sudo docker exec \
-#        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-#        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-#        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-#        cli \
-#        peer channel create \
-#        -o orderer.example.com:7050 \
-#        -c ${CHANNEL_ALL_NAME} \
-#        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${CHANNEL_ALL_NAME}.tx \
-#        --cafile ${ORDERER_CA}
-
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel join \
-        -b ${CHANNEL_ALL_NAME}.block \
-        --cafile ${ORDERER_CA}
-
-        sudo docker exec \
-        -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-        -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-        -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-        cli \
-        peer channel update \
-        -o orderer.example.com:7050 \
-        -c ${CHANNEL_ALL_NAME} \
-        -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/${ORGMSPANCHORS}_${CHANNEL_ALL_NAME}.tx \
-        --cafile ${ORDERER_CA}
-
-        # deploy ChainCode
-        sudo docker exec \
-            -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-            -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-            -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-            cli \
-            peer chaincode install \
-            -n fabbank \
-            -v 1.0 \
-            -p github.com/chaincode/Fab-Bank \
-            -l golang
-
+# init
+function checkLibPermission(){
+    libName="lib"
+    libPath="./${libName}"
+    libPermission=`sudo stat -c %a ${libPath}`
+    if [[ ${libPermission} -ne 711 ]];then
+        sudo chmod -R 711 ${libPath}
     fi
 }
 
-function attachDocker() {
-    PEER=$1
-    if [[ ${PEER} == "1" ]]; then
-        ORG1_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
-        CORE_PEER_LOCALMSPID=Org1MSP
-        CORE_PEER_ADDRESS=peer0.org1.example.com:7051
-        CORE_PEER_MSPCONFIGPATH=${ORG1_MSPCONFIGPATH}
+checkLibPermission
 
-    elif [[ ${PEER} == "2" ]]; then
-        ORG2_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp
-        CORE_PEER_LOCALMSPID=Org2MSP
-        CORE_PEER_ADDRESS=peer0.org2.example.com:8051
-        CORE_PEER_MSPCONFIGPATH=${ORG2_MSPCONFIGPATH}
-
-    elif [[ ${PEER} == "3" ]]; then
-        ORG3_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org3.example.com/users/Admin@org3.example.com/msp
-        CORE_PEER_LOCALMSPID=Org3MSP
-        CORE_PEER_ADDRESS=peer0.org3.example.com:9051
-        CORE_PEER_MSPCONFIGPATH=${ORG3_MSPCONFIGPATH}
-    else
-        return
-    fi
+# import
+. ./lib/fabric.sh
+. ./lib/docker.sh
+. ./lib/log.sh
 
 
-    sudo docker exec \
-     -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
-     -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
-     -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
-     -e ORDERER_CA=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem \
-     -it \
-     cli bash
-}
-
-function imageRm() {
-    v=$1
-    sudo docker image rm ${v}
-}
-
-function containerRm() {
-    v=$1
-    sudo docker container rm ${v}
-}
-
-function dockerRm() {
-    type=$1
-    str=$2
-    values=$(echo ${str} | tr " " "\n")
-
-    for v in ${values}
-    do
-        if [[ "${v}" =~ "fabbank"  ]]; then
-            if [[ ${type} == "container" ]]; then
-                containerRm ${v}
-            elif [[ ${type} == "image" ]]; then
-                imageRm ${v}
-            fi
-        fi
-    done
-}
-
-function fabIceRmContainer() {
-    str=$(sudo docker ps -a --format '{{.Names}}')
-    dockerRm "container" ${str}
-}
-
-function fabIceRmImage() {
-    str=$(sudo docker image ls --format '{{.Repository}}')
-    dockerRm "image" ${str}
-}
-
-function run() {
-    docker-compose -f docker-compose.yml up -d
-
-    # TODO: shell script(*TLS)
-#    peerDockerExec 1 && \
-#    peerDockerExec 2 && \
-#    peerDockerExec 3
-
-    docker exec -it cli bash
-}
-
-if [[ ${MODE} == "rm" ]]; then
-    docker-compose down
-    docker volume rm $(docker volume ls -qf dangling=true)
-    rm -rf crypto-config
-    rm -rf channel-artifacts
-    fabIceRmContainer
-    fabIceRmImage
-elif [[ ${MODE} == "build" ]]; then
-    build
+# main
+if [[ ${MODE} == "build" ]]; then
+    fabricBuild
 elif [[ ${MODE} == "run" ]]; then
-    run
+    dockerComposeUp
+
+    # ORG1
+    echo "---------- ORG1 ${CHANNEL_ALL_PROFILE} ---------- "
+    dockerNewChannel ${ORG1_MSP} ${ORG1_CORE_PEER_ADDRESS} ${ORG1_MSPCONFIGPATH} ${ORG1_TLS_ROOTCERT_FILE} ${CHANNEL_ALL_NAME}
+    dockerJoinChannel ${ORG1_MSP} ${ORG1_CORE_PEER_ADDRESS} ${ORG1_MSPCONFIGPATH} ${ORG1_TLS_ROOTCERT_FILE} ${CHANNEL_ALL_NAME}
+    dockerUpdateChannel ${ORG1_MSP} ${ORG1_CORE_PEER_ADDRESS} ${ORG1_MSPCONFIGPATH} ${ORG1_TLS_ROOTCERT_FILE} ${CHANNEL_ALL_NAME} ${ORG1_MSP_ANCHORS}
+    echo "---------- ORG1 ${CHANNEL_VIP_PROFILE} ---------- "
+    dockerNewChannel ${ORG1_MSP} ${ORG1_CORE_PEER_ADDRESS} ${ORG1_MSPCONFIGPATH} ${ORG1_TLS_ROOTCERT_FILE} ${CHANNEL_VIP_NAME}
+    dockerJoinChannel ${ORG1_MSP} ${ORG1_CORE_PEER_ADDRESS} ${ORG1_MSPCONFIGPATH} ${ORG1_TLS_ROOTCERT_FILE} ${CHANNEL_VIP_NAME}
+    dockerUpdateChannel ${ORG1_MSP} ${ORG1_CORE_PEER_ADDRESS} ${ORG1_MSPCONFIGPATH} ${ORG1_TLS_ROOTCERT_FILE} ${CHANNEL_VIP_NAME} ${ORG1_MSP_ANCHORS}
+    echo "---------- ORG1 ${CHANNEL_SECRET_PROFILE} ---------- "
+    dockerNewChannel ${ORG1_MSP} ${ORG1_CORE_PEER_ADDRESS} ${ORG1_MSPCONFIGPATH} ${ORG1_TLS_ROOTCERT_FILE} ${CHANNEL_SECRET_NAME}
+    dockerJoinChannel ${ORG1_MSP} ${ORG1_CORE_PEER_ADDRESS} ${ORG1_MSPCONFIGPATH} ${ORG1_TLS_ROOTCERT_FILE} ${CHANNEL_SECRET_NAME}
+    dockerUpdateChannel ${ORG1_MSP} ${ORG1_CORE_PEER_ADDRESS} ${ORG1_MSPCONFIGPATH} ${ORG1_TLS_ROOTCERT_FILE} ${CHANNEL_SECRET_NAME} ${ORG1_MSP_ANCHORS}
+    echo "---------- ORG1 INSTALL FAB-BANK ---------- "
+    dockerCCinstall ${ORG1_MSP} ${ORG1_CORE_PEER_ADDRESS} ${ORG1_MSPCONFIGPATH} ${ORG1_TLS_ROOTCERT_FILE}
+    echo "---------- ORG1 INSTANTIATE FAB-BANK ${CHANNEL_ALL_PROFILE} ---------- "
+    dockerCCinstantiate ${ORG1_MSP} ${ORG1_CORE_PEER_ADDRESS} ${ORG1_MSPCONFIGPATH} ${ORG1_TLS_ROOTCERT_FILE} ${CHANNEL_ALL_NAME}
+    echo "---------- ORG1 INSTANTIATE FAB-BANK ${CHANNEL_VIP_PROFILE} ---------- "
+    dockerCCinstantiate ${ORG1_MSP} ${ORG1_CORE_PEER_ADDRESS} ${ORG1_MSPCONFIGPATH} ${ORG1_TLS_ROOTCERT_FILE} ${CHANNEL_VIP_NAME}
+    echo "---------- ORG1 INSTANTIATE FAB-BANK ${CHANNEL_SECRET_PROFILE} ---------- "
+    dockerCCinstantiate ${ORG1_MSP} ${ORG1_CORE_PEER_ADDRESS} ${ORG1_MSPCONFIGPATH} ${ORG1_TLS_ROOTCERT_FILE} ${CHANNEL_SECRET_NAME}
+
+    # ORG2
+    echo "---------- ORG2 ${CHANNEL_ALL_PROFILE} ---------- "
+    dockerJoinChannel ${ORG2_MSP} ${ORG2_CORE_PEER_ADDRESS} ${ORG2_MSPCONFIGPATH} ${ORG2_TLS_ROOTCERT_FILE} ${CHANNEL_ALL_NAME}
+    dockerUpdateChannel ${ORG2_MSP} ${ORG2_CORE_PEER_ADDRESS} ${ORG2_MSPCONFIGPATH} ${ORG2_TLS_ROOTCERT_FILE} ${CHANNEL_ALL_NAME} ${ORG2_MSP_ANCHORS}
+    echo "---------- ORG2 ${CHANNEL_VIP_PROFILE} ---------- "
+    dockerJoinChannel ${ORG2_MSP} ${ORG2_CORE_PEER_ADDRESS} ${ORG2_MSPCONFIGPATH} ${ORG2_TLS_ROOTCERT_FILE} ${CHANNEL_VIP_NAME}
+    dockerUpdateChannel ${ORG2_MSP} ${ORG2_CORE_PEER_ADDRESS} ${ORG2_MSPCONFIGPATH} ${ORG2_TLS_ROOTCERT_FILE} ${CHANNEL_VIP_NAME} ${ORG2_MSP_ANCHORS}
+    echo "---------- ORG2 INSTALL FAB-BANK ---------- "
+    dockerCCinstall ${ORG2_MSP} ${ORG2_CORE_PEER_ADDRESS} ${ORG2_MSPCONFIGPATH} ${ORG2_TLS_ROOTCERT_FILE}
+
+    # ORG3
+    echo "---------- ORG3 ${CHANNEL_ALL_PROFILE} ---------- "
+    dockerJoinChannel ${ORG3_MSP} ${ORG3_CORE_PEER_ADDRESS} ${ORG3_MSPCONFIGPATH} ${ORG3_TLS_ROOTCERT_FILE} ${CHANNEL_ALL_NAME}
+    dockerUpdateChannel ${ORG3_MSP} ${ORG3_CORE_PEER_ADDRESS} ${ORG3_MSPCONFIGPATH} ${ORG3_TLS_ROOTCERT_FILE} ${CHANNEL_ALL_NAME} ${ORG3_MSP_ANCHORS}
+    echo "---------- ORG3 INSTALL FAB-BANK ---------- "
+    dockerCCinstall ${ORG3_MSP} ${ORG3_CORE_PEER_ADDRESS} ${ORG3_MSPCONFIGPATH} ${ORG3_TLS_ROOTCERT_FILE}
+
+elif [[ ${MODE} == "rm" ]]; then
+    dockerComposeDown
+    fabricRmDir
+    dockerRmContainer
+    dockerRmImage
+    dockerRmVolume
 elif [[ ${MODE} == "attach" ]]; then
-    attachDocker $2
+    USER=$2
+    if [[ ${USER} == "1" ]]; then
+        dockerAttach ${ORG1_MSP} ${ORG1_CORE_PEER_ADDRESS} ${ORG1_MSPCONFIGPATH} ${ORG1_TLS_ROOTCERT_FILE}
+    elif [[ ${USER} == "2" ]]; then
+        dockerAttach ${ORG2_MSP} ${ORG2_CORE_PEER_ADDRESS} ${ORG2_MSPCONFIGPATH} ${ORG2_TLS_ROOTCERT_FILE}
+    elif [[ ${USER} == "3" ]]; then
+        dockerAttach ${ORG3_MSP} ${ORG3_CORE_PEER_ADDRESS} ${ORG3_MSPCONFIGPATH} ${ORG3_TLS_ROOTCERT_FILE}
+    else
+        logAttachHelp
+    fi
+
 else
-    helpOptions
+    logHelp
 fi
