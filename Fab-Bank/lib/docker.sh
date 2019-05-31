@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 
-ORDERER_CA=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
-
 function dockerAttach() {
     PEER_LOCALMSPID=$1
     PEER_ADDRESS=$2
     PEER_MSPCONFIGPATH=$3
     PEER_TLS_ROOTCERT_FILE=$4
+    PEER_TLS_CERT_FILE=$5
+    PEER_TLS_KEY_FILE=$6
 
     sudo docker exec \
     -e CORE_PEER_LOCALMSPID=${PEER_LOCALMSPID} \
     -e CORE_PEER_ADDRESS=${PEER_ADDRESS} \
     -e CORE_PEER_MSPCONFIGPATH=${PEER_MSPCONFIGPATH} \
+    -e CORE_PEER_TLS_CERT_FILE=${PEER_TLS_CERT_FILE} \
+    -e CORE_PEER_TLS_KEY_FILE=${PEER_TLS_KEY_FILE} \
     -e CORE_PEER_TLS_ROOTCERT_FILE=${PEER_TLS_ROOTCERT_FILE} \
     -e ORDERER_CA=${ORDERER_CA} \
     -it \
@@ -24,12 +26,16 @@ function dockerNewChannel(){
     PEER_MSPCONFIGPATH=$3
     PEER_TLS_ROOTCERT_FILE=$4
     CHANNEL_NAME=$5
+    PEER_TLS_CERT_FILE=$6
+    PEER_TLS_KEY_FILE=$7
 
     sudo docker exec \
     -e CORE_PEER_LOCALMSPID=${PEER_LOCALMSPID} \
     -e CORE_PEER_ADDRESS=${PEER_ADDRESS} \
     -e CORE_PEER_MSPCONFIGPATH=${PEER_MSPCONFIGPATH} \
     -e CORE_PEER_TLS_ROOTCERT_FILE=${PEER_TLS_ROOTCERT_FILE} \
+    -e CORE_PEER_TLS_CERT_FILE=${PEER_TLS_CERT_FILE} \
+    -e CORE_PEER_TLS_KEY_FILE=${PEER_TLS_KEY_FILE} \
     cli \
     peer channel create \
     -o orderer.example.com:7050 \
@@ -45,12 +51,16 @@ function dockerJoinChannel(){
     CORE_PEER_MSPCONFIGPATH=$3
     CORE_PEER_TLS_ROOTCERT_FILE=$4
     CHANNEL_NAME=$5
+    PEER_TLS_CERT_FILE=$6
+    PEER_TLS_KEY_FILE=$7
 
     sudo docker exec \
     -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
     -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
     -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
     -e CORE_PEER_TLS_ROOTCERT_FILE=${CORE_PEER_TLS_ROOTCERT_FILE} \
+    -e CORE_PEER_TLS_CERT_FILE=${PEER_TLS_CERT_FILE} \
+    -e CORE_PEER_TLS_KEY_FILE=${PEER_TLS_KEY_FILE} \
     cli \
     peer channel join \
     -b ${CHANNEL_NAME}.block \
@@ -65,12 +75,16 @@ function dockerUpdateChannel(){
     CORE_PEER_TLS_ROOTCERT_FILE=$4
     CHANNEL_NAME=$5
     ORGMSPANCHORS=$6
+    PEER_TLS_CERT_FILE=$7
+    PEER_TLS_KEY_FILE=$8
 
     sudo docker exec \
     -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
     -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
     -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
     -e CORE_PEER_TLS_ROOTCERT_FILE=${CORE_PEER_TLS_ROOTCERT_FILE} \
+    -e CORE_PEER_TLS_CERT_FILE=${PEER_TLS_CERT_FILE} \
+    -e CORE_PEER_TLS_KEY_FILE=${PEER_TLS_KEY_FILE} \
     cli \
     peer channel update \
     -o orderer.example.com:7050 \
@@ -85,12 +99,16 @@ function dockerCCinstall(){
     CORE_PEER_ADDRESS=$2
     CORE_PEER_MSPCONFIGPATH=$3
     CORE_PEER_TLS_ROOTCERT_FILE=$4
+    PEER_TLS_CERT_FILE=$5
+    PEER_TLS_KEY_FILE=$6
 
     sudo docker exec \
     -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
     -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
     -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
     -e CORE_PEER_TLS_ROOTCERT_FILE=${CORE_PEER_TLS_ROOTCERT_FILE} \
+    -e CORE_PEER_TLS_CERT_FILE=${PEER_TLS_CERT_FILE} \
+    -e CORE_PEER_TLS_KEY_FILE=${PEER_TLS_KEY_FILE} \
     cli \
     peer chaincode install \
     -n fabbank \
@@ -105,12 +123,16 @@ function dockerCCinstantiate(){
     CORE_PEER_MSPCONFIGPATH=$3
     CORE_PEER_TLS_ROOTCERT_FILE=$4
     CHANNEL_NAME=$5
+    PEER_TLS_CERT_FILE=$6
+    PEER_TLS_KEY_FILE=$7
 
     sudo docker exec \
     -e CORE_PEER_LOCALMSPID=${CORE_PEER_LOCALMSPID} \
     -e CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS} \
     -e CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH} \
     -e CORE_PEER_TLS_ROOTCERT_FILE=${CORE_PEER_TLS_ROOTCERT_FILE} \
+    -e CORE_PEER_TLS_CERT_FILE=${PEER_TLS_CERT_FILE} \
+    -e CORE_PEER_TLS_KEY_FILE=${PEER_TLS_KEY_FILE} \
     cli \
     peer chaincode instantiate \
     -o orderer.example.com:7050 \

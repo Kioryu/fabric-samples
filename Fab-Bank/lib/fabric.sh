@@ -1,36 +1,5 @@
 #!/usr/bin/env bash
 
-CONFIG_ROOT=/opt/gopath/src/github.com/hyperledger/fabric/peer
-
-ORG1_MSP=Org1MSP
-ORG2_MSP=Org2MSP
-ORG3_MSP=Org3MSP
-
-ORG1_CORE_PEER_ADDRESS=peer0.org1.example.com:7051
-ORG2_CORE_PEER_ADDRESS=peer0.org2.example.com:8051
-ORG3_CORE_PEER_ADDRESS=peer0.org3.example.com:9051
-
-ORG1_MSP_ANCHORS=Org1MSPanchors
-ORG2_MSP_ANCHORS=Org2MSPanchors
-ORG3_MSP_ANCHORS=Org3MSPanchors
-
-CHANNEL_ALL_NAME=channelall
-CHANNEL_ALL_PROFILE=ChannelAll
-
-CHANNEL_VIP_NAME=channelvip
-CHANNEL_VIP_PROFILE=ChannelVIP
-
-CHANNEL_SECRET_NAME=channelsecret
-CHANNEL_SECRET_PROFILE=ChannelSecret
-
-ORG1_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
-ORG2_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp
-ORG3_MSPCONFIGPATH=${CONFIG_ROOT}/crypto/peerOrganizations/org3.example.com/users/Admin@org3.example.com/msp
-
-ORG1_TLS_ROOTCERT_FILE=${CONFIG_ROOT}/crypto/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
-ORG2_TLS_ROOTCERT_FILE=${CONFIG_ROOT}/crypto/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
-ORG3_TLS_ROOTCERT_FILE=${CONFIG_ROOT}/crypto/peerOrganizations/org3.example.com/peers/peer0.org3.example.com/tls/ca.crt
-
 function fabricBuild(){
     sudo mkdir channel-artifacts
 
